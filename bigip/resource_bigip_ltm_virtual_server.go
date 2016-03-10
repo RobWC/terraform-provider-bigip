@@ -81,7 +81,15 @@ func resourceBigipLtmVirtualServer() *schema.Resource {
 			"source_address_translation": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
+				Computed:    true,
 				Description: "none, automap, snat",
+			},
+
+			"ip_protocol": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "all, tcp, udp",
 			},
 		},
 	}
@@ -144,6 +152,7 @@ func resourceBigipLtmVirtualServerRead(d *schema.ResourceData, meta interface{})
 	d.Set("mask", vs.Mask)
 	d.Set("port", vs.SourcePort)
 	d.Set("irules", makeStringSet(&vs.Rules))
+	d.Set("ip_protocol", vs.IPProtocol)
 	d.Set("source_address_translation", vs.SourceAddressTranslation.Type)
 
 	profiles, err := client.VirtualServerProfiles(vs.Name)
@@ -190,20 +199,18 @@ func resourceBigipLtmVirtualServerUpdate(d *schema.ResourceData, meta interface{
 	}
 
 	var rules []string
-	if cfg_rules, ok := d.GetOk("rules"); ok {
-		for _, rule := range cfg_rules.(*schema.Set).List() {
-			rules = append(rules, rule.(string))
-		}
+	if cfg_rules, ok := d.GetOk("irules"); ok {
+		rules = setToStringSlice(cfg_rules.(*schema.Set))
 	}
 
 	vs := &bigip.VirtualServer{
 		Destination: fmt.Sprintf("%s:%d", d.Get("destination").(string), d.Get("port").(int)),
 		Source:      d.Get("source").(string),
-		IPProtocol:  d.Get("protocol").(string),
 		Pool:        d.Get("pool").(string),
 		Mask:        d.Get("mask").(string),
 		Rules:       rules,
 		Profiles:    profiles,
+		IPProtocol:  d.Get("ip_protocol").(string),
 		SourceAddressTranslation: struct {
 			Type string `json:"type,omitempty"`
 		}{Type: d.Get("source_address_translation").(string)},
@@ -224,12 +231,4 @@ func resourceBigipLtmVirtualServerDelete(d *schema.ResourceData, meta interface{
 	log.Println("[INFO] Deleting virtual server " + name)
 
 	return client.DeleteVirtualServer(name)
-}
-
-func makeStringSet(list *[]string) *schema.Set {
-	ilist := make([]interface{}, len(*list))
-	for i, v := range *list {
-		ilist[i] = v
-	}
-	return schema.NewSet(schema.HashString, ilist)
 }
