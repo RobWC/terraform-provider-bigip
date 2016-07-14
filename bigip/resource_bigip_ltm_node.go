@@ -111,10 +111,13 @@ func resourceBigipLtmNodeDelete(d *schema.ResourceData, meta interface{}) error 
 	name := d.Id()
 	log.Println("[INFO] Deleting node " + name)
 
-	err := client.DeleteNode(name)
+	sp := strings.Split(name, "/")
+	sname := sp[len(sp)-1]
+
+	err := client.DeleteNode(sname)
 	regex := regexp.MustCompile("referenced by a member of pool '\\/\\w+/([\\w-_.]+)")
 	for err != nil {
-		log.Println("[INFO] Deleting %s from pools...", name)
+		log.Printf("[INFO] Deleting %s from pools...", sname)
 		parts := regex.FindStringSubmatch(err.Error())
 		if len(parts) > 1 {
 			poolName := parts[1]
@@ -123,14 +126,14 @@ func resourceBigipLtmNodeDelete(d *schema.ResourceData, meta interface{}) error 
 				return e
 			}
 			for _, member := range members {
-				if strings.HasPrefix(member, name+":") {
+				if strings.HasPrefix(member, sname+":") {
 					e = client.DeletePoolMember(poolName, member)
 					if e != nil {
 						return e
 					}
 				}
 			}
-			err = client.DeleteNode(name)
+			err = client.DeleteNode(sname)
 		} else {
 			break
 		}
