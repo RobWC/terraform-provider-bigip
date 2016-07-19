@@ -164,7 +164,15 @@ func resourceBigipLtmPoolUpdate(d *schema.ResourceData, meta interface{}) error 
 	if err != nil {
 		return err
 	}
-	existing := makeStringSet(&nodes)
+
+	var cleanNodes []string
+
+	for n := range nodes {
+		sp := strings.Split(nodes[n], "/")
+		cleanNodes = append(cleanNodes, sp[len(sp)-1])
+	}
+
+	existing := makeStringSet(&cleanNodes)
 	incoming := d.Get("nodes").(*schema.Set)
 	delete := existing.Difference(incoming)
 	add := incoming.Difference(existing)
