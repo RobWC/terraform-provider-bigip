@@ -3,10 +3,11 @@ package bigip
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/scottdware/go-bigip"
 	"regexp"
 	"strings"
+
+	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/scottdware/go-bigip"
 )
 
 func resourceBigipLtmNode() *schema.Resource {
@@ -80,6 +81,7 @@ func resourceBigipLtmNodeExists(d *schema.ResourceData, meta interface{}) (bool,
 	client := meta.(*bigip.BigIP)
 
 	name := d.Id()
+
 	log.Println("[INFO] Fetching node " + name)
 
 	node, err := client.GetNode(name)

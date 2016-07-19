@@ -1,6 +1,7 @@
 package bigip
 
 import (
+	"fmt"
 	"log"
 	"regexp"
 	"strings"
@@ -103,6 +104,10 @@ func resourceBigipLtmPoolRead(d *schema.ResourceData, meta interface{}) error {
 	nodes, err := client.PoolMembers(name)
 	if err != nil {
 		return err
+	}
+
+	for n := range nodes {
+		nodes[n] = fmt.Sprintf("/%s/%s", pool.Partition, nodes[n])
 	}
 
 	d.Set("allow_nat", pool.AllowNAT)
